@@ -204,6 +204,9 @@ export function ChatInterface({ conversationId, onNewConversation }: ChatInterfa
                 </div>
               </div>
             )}
+            <div className="pt-2 text-center text-[10px] text-muted-foreground/30">
+              تم التطوير بواسطة إياد محمد
+            </div>
           </>
         )}
         <div ref={messagesEndRef} />

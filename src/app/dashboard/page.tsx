@@ -313,6 +313,12 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {uploadStatus === 'completed' && (
+              <div className="pt-2 text-center text-[10px] text-muted-foreground/30">
+                تم التطوير بواسطة إياد محمد
+              </div>
+            )}
+
             {uploadStatus === 'error' && (
               <div className="flex flex-col items-center gap-4 py-12">
                 <XCircle className="h-12 w-12 text-destructive" />

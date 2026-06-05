@@ -85,6 +85,14 @@ CREATE TABLE IF NOT EXISTS telegram_logs (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 8. Site Settings (maintenance mode, etc)
+CREATE TABLE IF NOT EXISTS site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT 'false'
+);
+INSERT INTO site_settings (key, value) VALUES ('maintenance_mode', 'false')
+ON CONFLICT (key) DO NOTHING;
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);

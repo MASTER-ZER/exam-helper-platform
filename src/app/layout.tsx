@@ -4,6 +4,8 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { Navbar } from '@/components/shared/Navbar'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { MaintenanceGuard } from '@/components/MaintenanceGuard'
+import { Credit } from '@/components/Credit'
 import './globals.css'
 
 const tajawal = Tajawal({
@@ -27,7 +29,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="gold" enableSystem={false}>
           <TooltipProvider>
             <Navbar />
-            <main className="animate-in fade-in duration-300">{children}</main>
+            <MaintenanceGuard>
+              <main className="animate-in fade-in duration-300">{children}</main>
+              <Credit />
+            </MaintenanceGuard>
             <Toaster richColors position="top-left" />
           </TooltipProvider>
         </ThemeProvider>

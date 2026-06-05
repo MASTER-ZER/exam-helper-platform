@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AdminSettingsPage() {
@@ -19,6 +19,15 @@ export default function AdminSettingsPage() {
   const [telegramMsg, setTelegramMsg] = useState('')
   const [aiMsg, setAiMsg] = useState('')
   const [groqMsg, setGroqMsg] = useState('')
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/maintenance/status')
+      .then((r) => r.json())
+      .then((d) => setMaintenanceMode(d.maintenance))
+      .catch(() => {})
+  }, [])
 
   async function testConnection(url: string, setStatus: any, setMsg: any, setLoading: any, label: string) {
     setLoading(true)
@@ -44,11 +53,57 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function toggleMaintenance() {
+    setTogglingMaintenance(true)
+    try {
+      const res = await fetch('/api/admin/maintenance', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setMaintenanceMode(data.maintenance)
+        toast.success(data.maintenance ? 'تم تفعيل وضع الصيانة' : 'تم إلغاء وضع الصيانة')
+      } else {
+        toast.error(data.error || 'فشل التبديل')
+      }
+    } catch {
+      toast.error('فشل الاتصال بالخادم')
+    } finally {
+      setTogglingMaintenance(false)
+    }
+  }
+
   return (
     <div dir="rtl">
       <h1 className="mb-6 text-2xl font-bold">الإعدادات</h1>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Maintenance Mode */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              وضع الصيانة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div>
+              <p className="text-sm">
+                عند التفعيل، الموقع يقفل على جميع الطلاب وتظهر لهم رسالة "يتم صيانة الموقع"
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                الأدمن فقط يقدر يدخل ويطفيه
+              </p>
+            </div>
+            <Button
+              variant={maintenanceMode ? 'destructive' : 'default'}
+              onClick={toggleMaintenance}
+              disabled={togglingMaintenance}
+              className="min-w-[140px]"
+            >
+              {togglingMaintenance && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
+            </Button>
+          </CardContent>
+        </Card>
         {/* Telegram Settings */}
         <Card>
           <CardHeader>
