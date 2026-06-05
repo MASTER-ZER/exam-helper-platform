@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Select,
   SelectContent,
@@ -34,9 +34,16 @@ interface DatePickerProps {
 
 export function DatePicker({ value, onChange }: DatePickerProps) {
   const parts = value ? value.split('-') : []
-  const day = parts[2] || ''
-  const month = parts[1] || ''
-  const year = parts[0] || ''
+  const [day, setDay] = useState(parts[2] || '')
+  const [month, setMonth] = useState(parts[1] || '')
+  const [year, setYear] = useState(parts[0] || '')
+
+  useEffect(() => {
+    const p = value ? value.split('-') : []
+    setDay(p[2] || '')
+    setMonth(p[1] || '')
+    setYear(p[0] || '')
+  }, [value])
 
   const daysInMonth = useMemo(() => {
     if (!month || !year) return 31
@@ -48,18 +55,25 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
     [daysInMonth]
   )
 
-  function update(part: 'day' | 'month' | 'year', val: string) {
-    const newDay = part === 'day' ? val : day
-    const newMonth = part === 'month' ? val : month
-    const newYear = part === 'year' ? val : year
+  const update = useCallback(
+    (part: 'day' | 'month' | 'year', val: string) => {
+      const newDay = part === 'day' ? val : day
+      const newMonth = part === 'month' ? val : month
+      const newYear = part === 'year' ? val : year
 
-    if (!newDay || !newMonth || !newYear) return
+      if (part === 'day') setDay(val)
+      else if (part === 'month') setMonth(val)
+      else if (part === 'year') setYear(val)
 
-    const maxDay = new Date(Number(newYear), Number(newMonth), 0).getDate()
-    const finalDay = String(Math.min(Number(newDay), maxDay)).padStart(2, '0')
+      if (!newDay || !newMonth || !newYear) return
 
-    onChange(`${newYear}-${newMonth}-${finalDay}`)
-  }
+      const maxDay = new Date(Number(newYear), Number(newMonth), 0).getDate()
+      const finalDay = String(Math.min(Number(newDay), maxDay)).padStart(2, '0')
+
+      onChange(`${newYear}-${newMonth}-${finalDay}`)
+    },
+    [day, month, year, onChange]
+  )
 
   return (
     <div className="flex gap-2" dir="rtl">
