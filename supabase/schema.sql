@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Unique constraint on phone
+ALTER TABLE profiles ADD CONSTRAINT profiles_phone_key UNIQUE (phone);
+
 -- 2. Exam Conversations
 CREATE TABLE IF NOT EXISTS exam_conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -88,8 +88,8 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation */}
-      {user && (
+      {/* Mobile Bottom Navigation - hidden on chat pages */}
+      {user && !pathname.startsWith('/chat') && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden" dir="rtl">
           <div className="flex h-16 items-center justify-around px-2">
             {bottomNavItems.map((item) => {

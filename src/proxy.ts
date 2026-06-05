@@ -6,13 +6,20 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const protectedPaths = ['/dashboard', '/chat', '/profile']
+  const oauthPaths = ['/auth/callback', '/complete-profile']
   const authPaths = ['/login', '/register']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
   const isAuthPage = authPaths.some((p) => pathname.startsWith(p))
+  const isOAuthPath = oauthPaths.some((p) => pathname.startsWith(p))
 
   // Redirect logged-in users away from landing page
   if (hasSession && pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Allow OAuth callback and profile completion without protection
+  if (isOAuthPath) {
+    return NextResponse.next()
   }
 
   // Protect dashboard/chat/profile
@@ -29,5 +36,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/chat/:path*', '/profile/:path*', '/login', '/register'],
+  matcher: ['/', '/dashboard/:path*', '/chat/:path*', '/profile/:path*', '/login', '/register', '/auth/callback', '/complete-profile'],
 }
