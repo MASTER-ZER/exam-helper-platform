@@ -73,13 +73,47 @@ export async function POST(req: Request) {
 
     // Save user message
     const adminClient = createAdminClient()
-    const { error: saveUserErr } = await adminClient.from('chat_messages').insert({
+    let { error: saveUserErr } = await adminClient.from('chat_messages').insert({
       conversation_id: convId,
       user_id: user.id,
       role: 'user',
       content: text || '',
       image_url: null,
     })
+
+    // Auto-create table if missing
+    if (saveUserErr?.message && (saveUserErr.message.includes('Could not find the table') || saveUserErr.message.includes('does not exist'))) {
+      const dbUrl = process.env.DATABASE_URL
+      if (dbUrl) {
+        try {
+          const pg = await import('pg')
+          const { Pool } = pg.default || pg
+          const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
+          const client = await pool.connect()
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS chat_messages (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              conversation_id uuid NOT NULL REFERENCES exam_conversations(id) ON DELETE CASCADE,
+              user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+              role text NOT NULL CHECK (role IN ('user','assistant')),
+              content text, image_url text, created_at timestamptz NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id);
+          `)
+          client.release()
+          await pool.end()
+          // Retry
+          const retry = await adminClient.from('chat_messages').insert({
+            conversation_id: convId, user_id: user.id, role: 'user',
+            content: text || '', image_url: null,
+          })
+          saveUserErr = retry.error
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     if (saveUserErr) {
       return NextResponse.json(
         { error: `فشل حفظ رسالتك: ${saveUserErr.message}` },
