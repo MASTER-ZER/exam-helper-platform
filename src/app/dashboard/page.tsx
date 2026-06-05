@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
+import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -155,6 +156,11 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 md:py-8 pb-20 md:pb-8" dir="rtl">
+      {/* Header Logo */}
+      <div className="mb-4 flex justify-center md:justify-start">
+        <Logo size={44} />
+      </div>
+
       {/* Student Info */}
       <Card className="mb-4 md:mb-8 animate-slide-up">
         <CardContent className="flex flex-col items-center gap-4 p-4 text-center md:flex-row md:text-right md:gap-6 md:p-6">

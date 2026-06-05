@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { LayoutDashboard, MessageCircle, User, LogOut, Home } from 'lucide-react'
+import { LayoutDashboard, MessageCircle, User, LogOut } from 'lucide-react'
+import { Logo } from './Logo'
 
 export function Navbar() {
   const { user, profile } = useUser()
@@ -37,9 +38,7 @@ export function Navbar() {
       {/* Top Navbar */}
       <nav className="border-b bg-background" dir="rtl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="text-xl font-bold">
-            برشامه سمارت
-          </Link>
+          <Logo />
 
           <div className="flex items-center gap-1 md:gap-2">
             <ThemeToggle />

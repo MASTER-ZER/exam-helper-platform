@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -137,7 +138,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4 py-8" dir="rtl">
+    <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-8" dir="rtl">
+      <Logo size={80} className="mb-6" />
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-center text-2xl">إنشاء حساب جديد</CardTitle>
