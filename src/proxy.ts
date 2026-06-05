@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const protectedPaths = ['/dashboard', '/chat', '/profile']
-  const oauthPaths = ['/auth/callback', '/complete-profile']
+  const oauthPaths = ['/auth/callback', '/complete-profile', '/api/setup']
   const authPaths = ['/login', '/register']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
   const isAuthPage = authPaths.some((p) => pathname.startsWith(p))
