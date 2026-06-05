@@ -5,6 +5,8 @@ import { solveImageWithAI } from '@/lib/gemini'
 import { sendExamUploadNotification, sendAIResponseNotification } from '@/lib/telegram'
 import { getImageMimeType } from '@/lib/utils'
 
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   try {
     const supabase = await createServerSupabaseClient()
