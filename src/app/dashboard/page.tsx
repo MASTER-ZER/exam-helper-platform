@@ -303,7 +303,7 @@ export default function DashboardPage() {
       )}
 
       {/* Previous Conversations */}
-      <Card>
+      <Card className="animate-slide-up">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileQuestion className="h-5 w-5" />
@@ -318,48 +318,45 @@ export default function DashboardPage() {
               <p className="text-sm">ارفع أول صورة سؤال للبدء</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {conversations.map((conv) => (
-                <Card key={conv.id}>
-                  <CardContent className="flex items-center gap-4 p-4">
+                <Card
+                  key={conv.id}
+                  className="cursor-pointer transition hover:bg-muted/50"
+                  onClick={() => {
+                    setShowUpload(true)
+                    setAiResult(conv.uploads?.[0]?.ai_response || null)
+                    setCurrentQuestionImage(conv.uploads?.[0]?.image_url || null)
+                    setUploadStatus('completed')
+                  }}
+                >
+                  <CardContent className="flex items-center gap-3 p-3 md:p-4">
                     {conv.uploads?.[0]?.image_url && (
                       <img
                         src={conv.uploads[0].image_url}
                         alt=""
-                        className="h-16 w-16 rounded-lg object-cover"
+                        className="h-14 w-14 md:h-16 md:w-16 shrink-0 rounded-lg object-cover"
                       />
                     )}
-                    <div className="flex-1">
-                      <p className="font-medium">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm md:text-base truncate">
                         {conv.title || `محادثة ${new Date(conv.created_at).toLocaleDateString('ar-EG')}`}
                       </p>
-                      <div className="flex gap-2 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap gap-2 mt-1 text-xs md:text-sm text-muted-foreground">
                         <span>{new Date(conv.created_at).toLocaleString('ar-EG')}</span>
                         {conv.uploads?.[0]?.ai_status === 'completed' ? (
-                          <Badge variant="secondary" className="flex items-center gap-1">
+                          <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                             <CheckCircle2 className="h-3 w-3" />
                             محلولة
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="flex items-center gap-1">
+                          <Badge variant="outline" className="flex items-center gap-1 text-xs">
                             <AlertCircle className="h-3 w-3" />
                             {conv.uploads?.[0]?.ai_status}
                           </Badge>
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setShowUpload(true)
-                        setAiResult(conv.uploads?.[0]?.ai_response || null)
-                        setCurrentQuestionImage(conv.uploads?.[0]?.image_url || null)
-                        setUploadStatus('completed')
-                      }}
-                    >
-                      عرض
-                    </Button>
                   </CardContent>
                 </Card>
               ))}

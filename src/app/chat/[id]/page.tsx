@@ -31,7 +31,7 @@ export default function ChatConversationPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]" dir="rtl">
+    <div className="flex h-[calc(100dvh-8rem)] md:h-[calc(100vh-4rem)]" dir="rtl">
       <ChatInterface
         key={id as string}
         conversationId={id as string}

@@ -66,7 +66,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]" dir="rtl">
+    <div className="flex h-[calc(100dvh-8rem)] md:h-[calc(100vh-4rem)]" dir="rtl">
       {/* Mobile sidebar overlay */}
       {showSidebar && (
         <div
@@ -79,7 +79,7 @@ export default function ChatPage() {
       <aside className={`${
         showSidebar ? 'translate-x-0' : '-translate-x-full'
       } fixed inset-y-0 right-0 z-50 w-72 border-l bg-background transition-transform md:relative md:translate-x-0 md:border-l-0 md:border-r`}
-        style={{ top: '4rem', height: 'calc(100vh - 4rem)' }}
+        style={{ top: '4rem', height: 'calc(100dvh - 8rem)', maxHeight: 'calc(100dvh - 8rem)' }}
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b p-4">
