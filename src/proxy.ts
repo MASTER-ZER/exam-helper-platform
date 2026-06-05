@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const protectedPaths = ['/dashboard', '/chat', '/profile']
-  const oauthPaths = ['/auth/callback', '/complete-profile', '/api/setup']
+  const oauthPaths = ['/auth/callback', '/api/setup']
   const authPaths = ['/login', '/register']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
   const isAuthPage = authPaths.some((p) => pathname.startsWith(p))
@@ -36,5 +36,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/chat/:path*', '/profile/:path*', '/login', '/register', '/auth/callback', '/complete-profile'],
+  matcher: ['/', '/dashboard/:path*', '/chat/:path*', '/profile/:path*', '/login', '/register', '/auth/callback'],
 }

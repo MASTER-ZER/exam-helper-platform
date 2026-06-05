@@ -17,6 +17,17 @@ export async function POST(req: Request) {
 
     const adminClient = createAdminClient()
 
+    // Check for existing phone number
+    const { data: existingProfile } = await adminClient
+      .from('profiles')
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle()
+
+    if (existingProfile) {
+      return NextResponse.json({ error: 'رقم الهاتف مستخدم بالفعل' }, { status: 409 })
+    }
+
     // Generate email if not provided
     const userEmail = email && email.trim()
       ? email.trim()

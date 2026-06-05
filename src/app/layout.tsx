@@ -4,7 +4,6 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { Navbar } from '@/components/shared/Navbar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import './globals.css'
 
 const tajawal = Tajawal({
@@ -27,11 +26,9 @@ export default function RootLayout({
       <body className={tajawal.className}>
         <ThemeProvider attribute="class" defaultTheme="gold" enableSystem={false}>
           <TooltipProvider>
-            <GoogleOAuthProvider clientId="382029459424-9uf56jhfki59equnr26lq3qa5gnjh3po.apps.googleusercontent.com">
-              <Navbar />
-              <main className="animate-in fade-in duration-300">{children}</main>
-              <Toaster richColors position="top-left" />
-            </GoogleOAuthProvider>
+            <Navbar />
+            <main className="animate-in fade-in duration-300">{children}</main>
+            <Toaster richColors position="top-left" />
           </TooltipProvider>
         </ThemeProvider>
       </body>

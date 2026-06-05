@@ -10,58 +10,12 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { GoogleLogin } from '@react-oauth/google'
+
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
-
-  async function handleGoogleSuccess(credential: string) {
-    const toastId = toast.loading('جاري تسجيل الدخول...')
-
-    try {
-      // Get nonce
-      const nonceRes = await fetch('/api/auth/google-nonce')
-      const { nonce } = await nonceRes.json()
-
-      // Call backend
-      const res = await fetch('/api/auth/google-callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential, nonce }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        toast.error(data.error || 'فشل تسجيل الدخول بـ Google', { id: toastId })
-        return
-      }
-
-      // Set Supabase session
-      const supabase = createClient()
-      const { error: setSessionError } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      })
-
-      if (setSessionError) {
-        toast.error('فشل إنشاء الجلسة', { id: toastId })
-        return
-      }
-
-      toast.success('تم تسجيل الدخول بنجاح', { id: toastId })
-
-      if (data.needs_profile) {
-        router.push('/complete-profile')
-      } else {
-        router.push('/dashboard')
-      }
-    } catch {
-      toast.error('حدث خطأ في الاتصال بالخادم', { id: toastId })
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -71,14 +25,14 @@ export default function LoginPage() {
     let loginEmail = form.email
 
     if (/^01[0-9]{9}$/.test(form.email)) {
-      const { data: profile } = await supabase
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('email')
         .eq('phone', form.email)
-        .maybeSingle()
+        .limit(1)
 
-      if (profile?.email) {
-        loginEmail = profile.email
+      if (profiles && profiles.length > 0) {
+        loginEmail = profiles[0].email
       }
     }
 
@@ -136,27 +90,6 @@ export default function LoginPage() {
               تسجيل الدخول
             </Button>
           </form>
-
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">أو</span>
-            </div>
-          </div>
-
-          <GoogleLogin
-            onSuccess={({ credential }) => {
-              if (credential) handleGoogleSuccess(credential)
-            }}
-            onError={() => toast.error('فشل تسجيل الدخول بـ Google')}
-            theme="outline"
-            size="large"
-            text="signin_with"
-            shape="rectangular"
-            width="100%"
-          />
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             ليس لديك حساب؟{' '}

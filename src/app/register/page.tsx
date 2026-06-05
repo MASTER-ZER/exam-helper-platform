@@ -9,11 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DatePicker } from '@/components/DatePicker'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
-import { GoogleLogin } from '@react-oauth/google'
 
 const governorates = [
   'القاهرة', 'الإسكندرية', 'الجيزة', 'الشرقية', 'الدقهلية',
@@ -253,9 +251,11 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label>تاريخ الميلاد</Label>
-              <DatePicker
+              <Input
+                type="date"
                 value={form.birth_date}
-                onChange={(d) => setForm({ ...form, birth_date: d })}
+                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+                required
               />
             </div>
 
@@ -264,55 +264,6 @@ export default function RegisterPage() {
               إنشاء الحساب
             </Button>
           </form>
-
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">أو</span>
-            </div>
-          </div>
-
-          <GoogleLogin
-            onSuccess={async ({ credential }) => {
-              if (!credential) return
-              const toastId = toast.loading('جاري التسجيل...')
-              try {
-                const nonceRes = await fetch('/api/auth/google-nonce')
-                const { nonce } = await nonceRes.json()
-                const res = await fetch('/api/auth/google-callback', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ credential, nonce }),
-                })
-                const data = await res.json()
-                if (!res.ok) {
-                  toast.error(data.error || 'فشل التسجيل بـ Google', { id: toastId })
-                  return
-                }
-                const supabase = createClient()
-                await supabase.auth.setSession({
-                  access_token: data.session.access_token,
-                  refresh_token: data.session.refresh_token,
-                })
-                toast.success('تم التسجيل بنجاح', { id: toastId })
-                if (data.needs_profile) {
-                  router.push('/complete-profile')
-                } else {
-                  router.push('/dashboard')
-                }
-              } catch {
-                toast.error('حدث خطأ في الاتصال بالخادم', { id: toastId })
-              }
-            }}
-            onError={() => toast.error('فشل التسجيل بـ Google')}
-            theme="outline"
-            size="large"
-            text="signup_with"
-            shape="rectangular"
-            width="100%"
-          />
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             لديك حساب بالفعل؟{' '}
