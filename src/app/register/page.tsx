@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { DatePicker } from '@/components/DatePicker'
 import { Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -251,11 +252,9 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label>تاريخ الميلاد</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={form.birth_date}
-                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
-                required
+                onChange={(d) => setForm({ ...form, birth_date: d })}
               />
             </div>
 

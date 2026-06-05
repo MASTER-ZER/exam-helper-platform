@@ -167,23 +167,50 @@ export async function sendExamUploadNotification(
   return sendPhoto(examData.image_url, caption)
 }
 
+const TELEGRAM_MAX_LENGTH = 4096
+
+function splitMessage(text: string): string[] {
+  const chunks: string[] = []
+  let remaining = text
+  while (remaining.length > 0) {
+    if (remaining.length <= TELEGRAM_MAX_LENGTH) {
+      chunks.push(remaining)
+      break
+    }
+    let splitAt = remaining.lastIndexOf('\n', TELEGRAM_MAX_LENGTH)
+    if (splitAt === -1 || splitAt < TELEGRAM_MAX_LENGTH / 2) {
+      splitAt = TELEGRAM_MAX_LENGTH
+    }
+    chunks.push(remaining.slice(0, splitAt))
+    remaining = remaining.slice(splitAt).trim()
+  }
+  return chunks
+}
+
 export async function sendAIResponseNotification(
   data: TelegramAIResponseData
 ): Promise<{ ok: boolean; error?: string }> {
-  const caption = [
+  const header = [
     '✅ <b>تم حل السؤال</b>',
     '',
     `👤 <b>الاسم:</b> ${escapeHtml(data.full_name)}`,
     `📧 <b>الإيميل:</b> ${escapeHtml(data.email)}`,
     `📞 <b>رقم الهاتف:</b> ${escapeHtml(data.phone)}`,
     `🆔 <b>ID:</b> ${escapeHtml(data.upload_id)}`,
+    '',
+    '━━━━━━━━━━━━━━━━',
+    '',
   ].join('\n')
 
-  return sendDocument(
-    data.ai_response,
-    `ai-response-${data.upload_id}.txt`,
-    caption
-  )
+  const fullMessage = header + data.ai_response
+  const chunks = splitMessage(fullMessage)
+
+  for (const chunk of chunks) {
+    const result = await sendMessage(chunk)
+    if (!result.ok) return result
+  }
+
+  return { ok: true }
 }
 
 export async function testTelegramConnection(): Promise<{
