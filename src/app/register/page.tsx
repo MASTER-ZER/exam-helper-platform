@@ -73,11 +73,6 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!form.avatar) {
-      toast.error('الصورة الشخصية مطلوبة')
-      return
-    }
-
     if (form.password !== form.confirm_password) {
       toast.error('كلمة المرور غير متطابقة')
       return
@@ -113,7 +108,9 @@ export default function RegisterPage() {
         }),
       })
 
-      const data = await res.json()
+      const textData = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(textData) } catch {}
 
       if (!res.ok) {
         toast.error(data.error || 'فشل إنشاء الحساب')
@@ -154,7 +151,7 @@ export default function RegisterPage() {
             {/* Avatar */}
             <div className="flex flex-col items-center gap-2">
               <Avatar
-                className="h-24 w-24 cursor-pointer ring-2 ring-primary/30"
+                className="h-24 w-24 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <AvatarImage src={previewUrl || undefined} />
@@ -170,7 +167,6 @@ export default function RegisterPage() {
               >
                 اختر صورة شخصية
               </Button>
-              <p className="text-xs text-muted-foreground">* الصورة الشخصية مطلوبة</p>
               <input
                 ref={fileInputRef}
                 type="file"

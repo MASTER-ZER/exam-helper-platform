@@ -143,7 +143,9 @@ export default function DashboardPage() {
         }),
       })
 
-      const data = await res.json()
+      const textData = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(textData) } catch {}
 
       if (!res.ok) {
         throw new Error(data.error || 'فشل معالجة الصورة')

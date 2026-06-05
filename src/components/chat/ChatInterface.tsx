@@ -57,7 +57,9 @@ export function ChatInterface({ conversationId, onNewConversation }: ChatInterfa
     setLoading(true)
     try {
       const res = await fetch(`/api/chat/messages?conversation_id=${convId}`)
-      const data = await res.json()
+      const text = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(text) } catch {}
       if (data.messages) {
         setMessages(data.messages)
       }
@@ -119,7 +121,9 @@ export function ChatInterface({ conversationId, onNewConversation }: ChatInterfa
         }),
       })
 
-      const data = await res.json()
+      const textData = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(textData) } catch {}
 
       if (!res.ok) {
         throw new Error(data.error || 'فشل الإرسال')
