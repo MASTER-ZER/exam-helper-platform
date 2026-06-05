@@ -32,6 +32,8 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState<(ExamConversation & { uploads: ExamUpload[] })[]>([])
   const [showUpload, setShowUpload] = useState(false)
   const [remainingUploads, setRemainingUploads] = useState(8)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -74,7 +76,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -93,19 +95,31 @@ export default function DashboardPage() {
       return
     }
 
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    setPendingFile(file)
+    setPendingPreview(URL.createObjectURL(file))
+  }
+
+  function cancelPending() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    setPendingFile(null)
+    setPendingPreview(null)
+  }
+
+  async function handleSubmitImage() {
+    if (!pendingFile || !user) return
+
     setUploadStatus('uploading')
     setShowUpload(true)
 
     try {
       const supabase = createClient()
-
-      // Upload to storage
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${user!.id}/${Date.now()}.${fileExt}`
+      const fileExt = pendingFile.name.split('.').pop()
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('exam-images')
-        .upload(filePath, file)
+        .upload(filePath, pendingFile)
 
       if (uploadError) {
         throw new Error('فشل رفع الصورة')
@@ -118,8 +132,8 @@ export default function DashboardPage() {
       const imageUrl = urlData.publicUrl
       setCurrentQuestionImage(imageUrl)
       setUploadStatus('processing')
+      cancelPending()
 
-      // Call API to process
       const res = await fetch('/api/exam/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,7 +230,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {uploadStatus === 'idle' && (
+            {uploadStatus === 'idle' && !pendingPreview && (
               <div className="flex flex-col items-center gap-4">
                 <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-12 hover:bg-muted/50">
                   <Upload className="h-12 w-12 text-muted-foreground" />
@@ -228,9 +242,30 @@ export default function DashboardPage() {
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={handleFileUpload}
+                    onChange={handleFileSelect}
                   />
                 </label>
+              </div>
+            )}
+
+            {uploadStatus === 'idle' && pendingPreview && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <img
+                    src={pendingPreview}
+                    alt="معاينة الصورة"
+                    className="max-h-80 rounded-lg object-contain"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">تأكد من وضوح الصورة قبل الحل</p>
+                <div className="flex gap-3">
+                  <Button onClick={handleSubmitImage} className="min-w-[120px]">
+                    حل الامتحان
+                  </Button>
+                  <Button variant="outline" onClick={cancelPending}>
+                    إلغاء
+                  </Button>
+                </div>
               </div>
             )}
 
