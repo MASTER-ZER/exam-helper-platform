@@ -93,17 +93,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'فشل حفظ بيانات المستخدم' }, { status: 500 })
     }
 
-    // Send Telegram notification (fire and forget)
-    sendNewUserNotification({
-      full_name,
-      email: userEmail,
-      phone,
-      governorate,
-      birth_date,
-      plan: 'free',
-      user_id: userId,
-      avatar_url: avatarUrl,
-    }).catch(() => {})
+    // Send Telegram notification
+    try {
+      const notifyResult = await sendNewUserNotification({
+        full_name,
+        email: userEmail,
+        phone,
+        governorate,
+        birth_date,
+        plan: 'free',
+        user_id: userId,
+        avatar_url: avatarUrl,
+      })
+      if (!notifyResult.ok) console.error('New user notify failed:', notifyResult.error)
+    } catch (e) {
+      console.error('New user notify error:', e)
+    }
 
     return NextResponse.json({
       success: true,

@@ -89,9 +89,11 @@ async function sendDocument(
 
     const formData = new FormData()
     formData.append('chat_id', chatId)
-    formData.append('caption', caption)
-    formData.append('parse_mode', 'HTML')
     formData.append('document', new Blob([content], { type: 'text/plain' }), filename)
+    if (caption) {
+      formData.append('caption', caption)
+      formData.append('parse_mode', 'HTML')
+    }
 
     const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
       method: 'POST',
@@ -119,8 +121,16 @@ async function sendMessage(message: string): Promise<{ ok: boolean; error?: stri
     const data = await res.json()
     if (data.ok) return { ok: true }
 
+    // Log the HTML error for diagnostics
+    console.error('sendMessage HTML failed:', JSON.stringify(data))
+
     // Retry without HTML parsing (strip tags for safety)
-    const plainText = message.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    const plainText = message
+      .replace(/<[^>]*>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
     const fallbackRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -129,9 +139,13 @@ async function sendMessage(message: string): Promise<{ ok: boolean; error?: stri
     const fallbackData = await fallbackRes.json()
     if (fallbackData.ok) return { ok: true }
 
-    // Last resort: send as document (no content limits)
-    return sendDocument(plainText, `response-${Date.now()}.txt`, '')
+    // Log the plain text error too
+    console.error('sendMessage plain text failed:', JSON.stringify(fallbackData))
+
+    // Last resort: send as document
+    return sendDocument(plainText, `response-${Date.now()}.txt`, 'إجابة الامتحان')
   } catch (err: unknown) {
+    console.error('sendMessage error:', err)
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }

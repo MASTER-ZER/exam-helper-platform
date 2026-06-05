@@ -151,14 +151,19 @@ export async function POST(req: Request) {
         .eq('id', user.id)
 
       // Send Telegram notification after successful AI response
-      sendAIResponseNotification({
-        full_name: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-        image_url,
-        ai_response: aiResult.text || '',
-        upload_id: upload.id,
-      }).catch((e) => console.error('AI response Telegram notification failed:', e))
+      try {
+        const notifyResult = await sendAIResponseNotification({
+          full_name: profile.full_name,
+          email: profile.email,
+          phone: profile.phone,
+          image_url,
+          ai_response: aiResult.text || '',
+          upload_id: upload.id,
+        })
+        if (!notifyResult.ok) console.error('AI response notify failed:', notifyResult.error)
+      } catch (e) {
+        console.error('AI response notify error:', e)
+      }
 
       return NextResponse.json({
         success: true,

@@ -170,15 +170,20 @@ export async function POST(req: Request) {
     }
 
     // Send Telegram notification (always, not just for images)
-    sendAIResponseNotification({
-      full_name: profile.full_name,
-      email: profile.email,
-      phone: profile.phone,
-      image_url: imageUrl || undefined,
-      ai_response: aiResult.text,
-      upload_id: convId,
-      user_text: text || undefined,
-    }).catch((e: unknown) => console.error('Telegram AI response notify failed:', e))
+    try {
+      const notifyResult = await sendAIResponseNotification({
+        full_name: profile.full_name,
+        email: profile.email,
+        phone: profile.phone,
+        image_url: imageUrl || undefined,
+        ai_response: aiResult.text,
+        upload_id: convId,
+        user_text: text || undefined,
+      })
+      if (!notifyResult.ok) console.error('AI response notify failed:', notifyResult.error)
+    } catch (e) {
+      console.error('AI response notify error:', e)
+    }
 
     return NextResponse.json({
       success: true,
