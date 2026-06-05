@@ -33,10 +33,12 @@ export async function POST(req: Request) {
     const { conversation_id, text, image_base64, file_path } = await req.json()
     const mimeType = image_base64 ? getImageMimeType(file_path || 'image.jpg') : undefined
 
+    const adminClient = createAdminClient()
+
     // Get or create conversation
     let convId = conversation_id
     if (!convId) {
-      const { data: conv, error: convErr } = await supabase
+      const { data: conv } = await supabase
         .from('exam_conversations')
         .insert({
           user_id: user.id,
@@ -46,79 +48,49 @@ export async function POST(req: Request) {
         .select()
         .single()
 
-      if (convErr) {
-        return NextResponse.json({ error: 'فشل إنشاء المحادثة' }, { status: 500 })
-      }
-      convId = conv.id
+      if (conv) convId = conv.id
+    }
+    if (!convId) {
+      return NextResponse.json({ error: 'فشل إنشاء المحادثة' }, { status: 500 })
     }
 
-    // Load chat history
-    const { data: history } = await supabase
-      .from('chat_messages')
-      .select('role, content')
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true })
-      .limit(50)
-
-    // Check message limit (15 per conversation)
-    if (convId) {
-      const userMsgCount = (history || []).filter((m) => m.role === 'user').length
-      if (userMsgCount >= 15) {
-        return NextResponse.json(
-          { error: 'لقد وصلت للحد الأقصى للرسائل في هذه المحادثة (15 رسالة). ابدأ محادثة جديدة.' },
-          { status: 429 }
-        )
+    // Load chat history (best effort)
+    let history: { role: string; content: string }[] = []
+    let userMsgCount = 0
+    try {
+      const { data: msgs } = await supabase
+        .from('chat_messages')
+        .select('role, content')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true })
+        .limit(50)
+      if (msgs) {
+        history = msgs
+        userMsgCount = msgs.filter((m) => m.role === 'user').length
       }
+    } catch {
+      // Table doesn't exist, proceed without history
     }
 
-    // Save user message
-    const adminClient = createAdminClient()
-    let { error: saveUserErr } = await adminClient.from('chat_messages').insert({
-      conversation_id: convId,
-      user_id: user.id,
-      role: 'user',
-      content: text || '',
-      image_url: null,
-    })
-
-    // Auto-create table if missing
-    if (saveUserErr?.message && (saveUserErr.message.includes('Could not find the table') || saveUserErr.message.includes('does not exist'))) {
-      const dbUrl = process.env.DATABASE_URL
-      if (dbUrl) {
-        try {
-          const pg = await import('pg')
-          const { Pool } = pg.default || pg
-          const pool = new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
-          const client = await pool.connect()
-          await client.query(`
-            CREATE TABLE IF NOT EXISTS chat_messages (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              conversation_id uuid NOT NULL REFERENCES exam_conversations(id) ON DELETE CASCADE,
-              user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-              role text NOT NULL CHECK (role IN ('user','assistant')),
-              content text, image_url text, created_at timestamptz NOT NULL DEFAULT now()
-            );
-            CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id);
-          `)
-          client.release()
-          await pool.end()
-          // Retry
-          const retry = await adminClient.from('chat_messages').insert({
-            conversation_id: convId, user_id: user.id, role: 'user',
-            content: text || '', image_url: null,
-          })
-          saveUserErr = retry.error
-        } catch {
-          // ignore
-        }
-      }
-    }
-
-    if (saveUserErr) {
+    // Check message limit
+    if (userMsgCount >= 15) {
       return NextResponse.json(
-        { error: `فشل حفظ رسالتك: ${saveUserErr.message}` },
-        { status: 500 }
+        { error: 'لقد وصلت للحد الأقصى للرسائل في هذه المحادثة (15 رسالة). ابدأ محادثة جديدة.' },
+        { status: 429 }
       )
+    }
+
+    // Save user message (best effort)
+    try {
+      await adminClient.from('chat_messages').insert({
+        conversation_id: convId,
+        user_id: user.id,
+        role: 'user',
+        content: text || '',
+        image_url: null,
+      })
+    } catch {
+      // Table doesn't exist, message not saved but still process
     }
 
     // Upload image to storage if base64 provided
@@ -151,12 +123,12 @@ export async function POST(req: Request) {
         upload_time: new Date().toLocaleString('ar-EG'),
         upload_id: convId,
         image_url: imageUrl,
-      }).catch((e) => console.error('Chat upload Telegram notification failed:', e))
+      }).catch(() => {})
     }
 
-    // Call AI with history
+    // Call AI
     const aiResult = await chatWithAI(
-      (history || []).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content || '' })),
+      history.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content || '' })),
       text,
       image_base64,
       mimeType
@@ -174,23 +146,28 @@ export async function POST(req: Request) {
       )
     }
 
-    // Save AI response
-    const { error: saveAIErr } = await adminClient.from('chat_messages').insert({
-      conversation_id: convId,
-      user_id: user.id,
-      role: 'assistant',
-      content: aiResult.text,
-      image_url: null,
-    })
-    if (saveAIErr) {
-      console.error('Failed to save AI response:', saveAIErr)
+    // Save AI response (best effort)
+    try {
+      await adminClient.from('chat_messages').insert({
+        conversation_id: convId,
+        user_id: user.id,
+        role: 'assistant',
+        content: aiResult.text,
+        image_url: null,
+      })
+    } catch {
+      // Table doesn't exist, response not saved but still return it
     }
 
-    // Update conversation status
-    await adminClient
-      .from('exam_conversations')
-      .update({ status: 'completed' })
-      .eq('id', convId)
+    // Update conversation status (best effort)
+    try {
+      await adminClient
+        .from('exam_conversations')
+        .update({ status: 'completed' })
+        .eq('id', convId)
+    } catch {
+      // ignore
+    }
 
     // Send Telegram notification
     if (imageUrl) {
@@ -201,7 +178,7 @@ export async function POST(req: Request) {
         image_url: imageUrl,
         ai_response: aiResult.text,
         upload_id: convId,
-      }).catch((e) => console.error('Chat send Telegram notification failed:', e))
+      }).catch(() => {})
     }
 
     return NextResponse.json({

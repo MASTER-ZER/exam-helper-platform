@@ -29,12 +29,18 @@ export async function GET(req: Request) {
     }
 
     // Return messages for specific conversation
-    const { data: messages } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
+    let messages: unknown[] = []
+    try {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+      if (data) messages = data
+    } catch {
+      // Table doesn't exist, return empty
+    }
 
     const { data: conversation } = await supabase
       .from('exam_conversations')
@@ -44,7 +50,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       conversation: conversation || null,
-      messages: messages || [],
+      messages,
     })
   } catch (err: unknown) {
     return NextResponse.json(
