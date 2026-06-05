@@ -1,13 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { useState, useMemo, useEffect } from 'react'
 
 const months = [
   { value: '01', label: 'يناير' },
@@ -55,72 +48,69 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
     [daysInMonth]
   )
 
-  const update = useCallback(
-    (part: 'day' | 'month' | 'year', val: string) => {
-      const newDay = part === 'day' ? val : day
-      const newMonth = part === 'month' ? val : month
-      const newYear = part === 'year' ? val : year
+  function handleChange(part: 'day' | 'month' | 'year', val: string) {
+    const newDay = part === 'day' ? val : day
+    const newMonth = part === 'month' ? val : month
+    const newYear = part === 'year' ? val : year
 
-      if (part === 'day') setDay(val)
-      else if (part === 'month') setMonth(val)
-      else if (part === 'year') setYear(val)
+    if (part === 'day') setDay(val)
+    else if (part === 'month') setMonth(val)
+    else if (part === 'year') setYear(val)
 
-      if (!newDay || !newMonth || !newYear) return
+    if (!newDay || !newMonth || !newYear) return
 
-      const maxDay = new Date(Number(newYear), Number(newMonth), 0).getDate()
-      const finalDay = String(Math.min(Number(newDay), maxDay)).padStart(2, '0')
+    const maxDay = new Date(Number(newYear), Number(newMonth), 0).getDate()
+    const finalDay = String(Math.min(Number(newDay), maxDay)).padStart(2, '0')
 
-      onChange(`${newYear}-${newMonth}-${finalDay}`)
-    },
-    [day, month, year, onChange]
-  )
+    onChange(`${newYear}-${newMonth}-${finalDay}`)
+  }
 
   return (
     <div className="flex gap-2" dir="rtl">
       <div className="flex-1 space-y-1">
         <span className="text-xs text-muted-foreground">اليوم</span>
-        <Select value={day} onValueChange={(v) => update('day', v || '')}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="--" />
-          </SelectTrigger>
-          <SelectContent className="max-h-48">
-            {days.map((d) => (
-              <SelectItem key={d} value={d}>
-                {d}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={day}
+          onChange={(e) => handleChange('day', e.target.value)}
+          className="flex w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">--</option>
+          {days.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex-1 space-y-1">
         <span className="text-xs text-muted-foreground">الشهر</span>
-        <Select value={month} onValueChange={(v) => update('month', v || '')}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="--" />
-          </SelectTrigger>
-          <SelectContent className="max-h-48">
-            {months.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={month}
+          onChange={(e) => handleChange('month', e.target.value)}
+          className="flex w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">--</option>
+          {months.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex-1 space-y-1">
         <span className="text-xs text-muted-foreground">السنة</span>
-        <Select value={year} onValueChange={(v) => update('year', v || '')}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="----" />
-          </SelectTrigger>
-          <SelectContent className="max-h-48">
-            {years.map((y) => (
-              <SelectItem key={y} value={y}>
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={year}
+          onChange={(e) => handleChange('year', e.target.value)}
+          className="flex w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">----</option>
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   )
