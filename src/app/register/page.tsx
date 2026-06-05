@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { signInWithGoogle } from '@/lib/google-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -277,15 +278,38 @@ export default function RegisterPage() {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => {
+            onClick={async () => {
               setGoogleLoading(true)
-              const supabase = createClient()
-              supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                  redirectTo: `${window.location.origin}/auth/callback`,
-                },
-              }).catch(() => setGoogleLoading(false))
+              try {
+                const supabase = createClient()
+                const idToken = await signInWithGoogle()
+                const { data, error } = await supabase.auth.signInWithIdToken({
+                  provider: 'google',
+                  token: idToken,
+                })
+                if (error) {
+                  toast.error(error.message)
+                  setGoogleLoading(false)
+                  return
+                }
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('id')
+                  .eq('id', data.user?.id)
+                  .maybeSingle()
+                if (profile) {
+                  toast.success('تم تسجيل الدخول بنجاح')
+                  router.push('/dashboard')
+                } else {
+                  router.push('/complete-profile')
+                }
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'فشل التسجيل بـ Google'
+                if (msg !== 'user_closed_authorization' && msg !== 'access_denied') {
+                  toast.error(msg)
+                }
+                setGoogleLoading(false)
+              }
             }}
             disabled={googleLoading}
           >
