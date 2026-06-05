@@ -154,7 +154,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8" dir="rtl">
+    <div className="container mx-auto px-4 py-4 md:py-8 pb-20 md:pb-8" dir="rtl">
       {/* Student Info */}
       <Card className="mb-4 md:mb-8 animate-slide-up">
         <CardContent className="flex flex-col items-center gap-4 p-4 text-center md:flex-row md:text-right md:gap-6 md:p-6">

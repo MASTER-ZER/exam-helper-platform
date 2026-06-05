@@ -231,7 +231,7 @@ export function ChatInterface({ conversationId, onNewConversation }: ChatInterfa
       )}
 
       {/* Input area */}
-      <div className="border-t bg-background p-3 md:p-4">
+      <div className="border-t bg-background p-3 pb-6 md:p-4 md:pb-4">
         <div className="mx-auto flex max-w-4xl items-end gap-2">
           <input
             type="file"
