@@ -1,0 +1,372 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useUser } from '@/hooks/useUser'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import {
+  Upload,
+  Loader2,
+  ImagePlus,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Brain,
+  FileQuestion,
+  MessageCircle,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import type { ExamConversation, ExamUpload, UploadStatus } from '@/types'
+
+export default function DashboardPage() {
+  const { user, profile, loading: userLoading } = useUser()
+  const router = useRouter()
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
+  const [aiResult, setAiResult] = useState<string | null>(null)
+  const [currentQuestionImage, setCurrentQuestionImage] = useState<string | null>(null)
+  const [conversations, setConversations] = useState<(ExamConversation & { uploads: ExamUpload[] })[]>([])
+  const [showUpload, setShowUpload] = useState(false)
+  const [remainingUploads, setRemainingUploads] = useState(8)
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, userLoading, router])
+
+  useEffect(() => {
+    if (profile) {
+      const freeLimit = 10
+      const used = profile.daily_upload_count
+      const today = new Date().toDateString()
+      const lastUpload = profile.last_upload_date
+        ? new Date(profile.last_upload_date).toDateString()
+        : null
+
+      if (today !== lastUpload) {
+        setRemainingUploads(freeLimit)
+      } else {
+        setRemainingUploads(Math.max(0, freeLimit - (used || 0)))
+      }
+
+      loadConversations()
+    }
+  }, [profile])
+
+  async function loadConversations() {
+    if (!user) return
+    const supabase = createClient()
+
+    const { data } = await supabase
+      .from('exam_conversations')
+      .select('*, uploads:exam_uploads(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (data) {
+      setConversations(data as unknown as (ExamConversation & { uploads: ExamUpload[] })[])
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('الصيغ المسموحة: JPG, PNG, WebP')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('الحد الأقصى 5MB')
+      return
+    }
+
+    if (remainingUploads <= 0) {
+      toast.error('لقد وصلت للحد المجاني اليومي. قم بالترقية لمتابعة الحلول.')
+      return
+    }
+
+    setUploadStatus('uploading')
+    setShowUpload(true)
+
+    try {
+      const supabase = createClient()
+
+      // Upload to storage
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user!.id}/${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('exam-images')
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw new Error('فشل رفع الصورة')
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('exam-images')
+        .getPublicUrl(filePath)
+
+      const imageUrl = urlData.publicUrl
+      setCurrentQuestionImage(imageUrl)
+      setUploadStatus('processing')
+
+      // Call API to process
+      const res = await fetch('/api/exam/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          file_path: filePath,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل معالجة الصورة')
+      }
+
+      setAiResult(data.ai_response)
+      setUploadStatus('completed')
+      setRemainingUploads((prev) => prev - 1)
+      toast.success('تم تحليل الصورة بنجاح!')
+      loadConversations()
+    } catch (err: unknown) {
+      setUploadStatus('error')
+      toast.error(err instanceof Error ? err.message : 'حدث خطأ')
+    }
+  }
+
+  if (userLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8" dir="rtl">
+      {/* Student Info */}
+      <Card className="mb-8">
+        <CardContent className="flex items-center gap-6 p-6">
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={profile?.avatar_url} />
+            <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{profile?.full_name}</h1>
+            <p className="text-muted-foreground">{profile?.governorate}</p>
+            <div className="mt-2 flex gap-2">
+              <Badge variant={profile?.plan === 'paid' ? 'default' : 'secondary'}>
+                {profile?.plan === 'paid' ? 'مدفوع' : 'مجاني'}
+              </Badge>
+              <Badge variant="outline">
+                متبقي: {remainingUploads} رفعة
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions - Two Big Buttons */}
+      <Card className="mb-8 border-primary/20">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Button
+              onClick={() => router.push('/chat')}
+              className="group relative h-28 flex-col gap-3 text-lg font-bold animate-pulse hover:animate-none"
+            >
+              <MessageCircle className="h-10 w-10" />
+              <span>تكلم مع الـ AI</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowUpload(!showUpload)}
+              className="h-28 flex-col gap-3 text-lg font-bold border-primary/50"
+            >
+              <Upload className="h-10 w-10" />
+              <span>ارفع صورة الامتحان</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upload Section */}
+      {showUpload && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              رفع صورة السؤال
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {uploadStatus === 'idle' && (
+              <div className="flex flex-col items-center gap-4">
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-12 hover:bg-muted/50">
+                  <Upload className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-lg font-medium">اختر صورة السؤال</p>
+                  <p className="text-sm text-muted-foreground">
+                    JPG, PNG, WebP - حد أقصى 5MB
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+              </div>
+            )}
+
+            {(uploadStatus === 'uploading' || uploadStatus === 'processing') && (
+              <div className="flex flex-col items-center gap-4 py-12">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-lg">
+                  {uploadStatus === 'uploading'
+                    ? 'جاري رفع الصورة...'
+                    : 'جاري تحليل الصورة باستخدام AI...'}
+                </p>
+              </div>
+            )}
+
+            {uploadStatus === 'completed' && aiResult && (
+              <div className="space-y-4">
+                {currentQuestionImage && (
+                  <div className="mb-4">
+                    <img
+                      src={currentQuestionImage}
+                      alt="السؤال"
+                      className="max-h-96 rounded-lg object-contain"
+                    />
+                  </div>
+                )}
+                <div className="rounded-lg bg-muted p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold">نتيجة التحليل</h3>
+                  </div>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {aiResult}
+                  </div>
+                </div>
+                <Button onClick={() => {
+                  setShowUpload(false)
+                  setUploadStatus('idle')
+                  setAiResult(null)
+                  setCurrentQuestionImage(null)
+                }}>
+                  رفع سؤال آخر
+                </Button>
+              </div>
+            )}
+
+            {uploadStatus === 'error' && (
+              <div className="flex flex-col items-center gap-4 py-12">
+                <XCircle className="h-12 w-12 text-destructive" />
+                <p className="text-lg text-destructive">حدث خطأ أثناء المعالجة</p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadStatus('idle')
+                    setAiResult(null)
+                    setCurrentQuestionImage(null)
+                  }}
+                >
+                  حاول مرة أخرى
+                </Button>
+              </div>
+            )}
+
+            {remainingUploads <= 0 && uploadStatus === 'idle' && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <AlertCircle className="h-12 w-12 text-amber-500" />
+                <p className="text-center text-lg">
+                  لقد وصلت للحد المجاني اليومي. قم بالترقية لمتابعة الحلول.
+                </p>
+                <Button onClick={() => router.push('/pricing')}>
+                  عرض الباقات
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Previous Conversations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileQuestion className="h-5 w-5" />
+            المحادثات السابقة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {conversations.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 py-8 text-muted-foreground">
+              <FileQuestion className="h-12 w-12" />
+              <p>لا توجد محادثات سابقة</p>
+              <p className="text-sm">ارفع أول صورة سؤال للبدء</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {conversations.map((conv) => (
+                <Card key={conv.id}>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    {conv.uploads?.[0]?.image_url && (
+                      <img
+                        src={conv.uploads[0].image_url}
+                        alt=""
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {conv.title || `محادثة ${new Date(conv.created_at).toLocaleDateString('ar-EG')}`}
+                      </p>
+                      <div className="flex gap-2 text-sm text-muted-foreground">
+                        <span>{new Date(conv.created_at).toLocaleString('ar-EG')}</span>
+                        {conv.uploads?.[0]?.ai_status === 'completed' ? (
+                          <Badge variant="secondary" className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            محلولة
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {conv.uploads?.[0]?.ai_status}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowUpload(true)
+                        setAiResult(conv.uploads?.[0]?.ai_response || null)
+                        setCurrentQuestionImage(conv.uploads?.[0]?.image_url || null)
+                        setUploadStatus('completed')
+                      }}
+                    >
+                      عرض
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
