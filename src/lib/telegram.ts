@@ -77,6 +77,32 @@ async function sendPhoto(
   }
 }
 
+async function sendDocument(
+  content: string,
+  filename: string,
+  caption: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const token = getBotToken()
+    const chatId = getChatId()
+
+    const formData = new FormData()
+    formData.append('chat_id', chatId)
+    formData.append('caption', caption)
+    formData.append('parse_mode', 'HTML')
+    formData.append('document', new Blob([content], { type: 'text/plain' }), filename)
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+    return { ok: data.ok, error: data.description }
+  } catch (err: unknown) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
 async function sendMessage(message: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const token = getBotToken()
@@ -144,26 +170,20 @@ export async function sendExamUploadNotification(
 export async function sendAIResponseNotification(
   data: TelegramAIResponseData
 ): Promise<{ ok: boolean; error?: string }> {
-  const escapedResponse = escapeHtml(data.ai_response)
-  const maxResponseLen = 3800
-  const truncatedResponse = escapedResponse.length > maxResponseLen
-    ? escapedResponse.substring(0, maxResponseLen) + '...'
-    : escapedResponse
-
   const caption = [
     '✅ <b>تم حل السؤال</b>',
     '',
     `👤 <b>الاسم:</b> ${escapeHtml(data.full_name)}`,
     `📧 <b>الإيميل:</b> ${escapeHtml(data.email)}`,
     `📞 <b>رقم الهاتف:</b> ${escapeHtml(data.phone)}`,
-    '',
-    `📝 <b>الإجابة:</b>`,
-    `<code>${truncatedResponse}</code>`,
-    '',
     `🆔 <b>ID:</b> ${escapeHtml(data.upload_id)}`,
   ].join('\n')
 
-  return sendMessage(caption)
+  return sendDocument(
+    data.ai_response,
+    `ai-response-${data.upload_id}.txt`,
+    caption
+  )
 }
 
 export async function testTelegramConnection(): Promise<{

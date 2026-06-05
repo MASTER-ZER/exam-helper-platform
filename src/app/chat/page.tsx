@@ -82,8 +82,8 @@ export default function ChatPage() {
         style={{ top: '4rem', height: 'calc(100vh - 4rem)' }}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b p-3">
-            <h2 className="font-bold">المحادثات</h2>
+          <div className="flex items-center justify-between border-b p-4">
+            <h2 className="font-bold text-base">المحادثات</h2>
             <Button
               size="sm"
               variant="ghost"

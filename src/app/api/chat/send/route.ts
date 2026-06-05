@@ -73,13 +73,19 @@ export async function POST(req: Request) {
 
     // Save user message
     const adminClient = createAdminClient()
-    await adminClient.from('chat_messages').insert({
+    const { error: saveUserErr } = await adminClient.from('chat_messages').insert({
       conversation_id: convId,
       user_id: user.id,
       role: 'user',
       content: text || '',
       image_url: null,
     })
+    if (saveUserErr) {
+      return NextResponse.json(
+        { error: `فشل حفظ رسالتك: ${saveUserErr.message}` },
+        { status: 500 }
+      )
+    }
 
     // Upload image to storage if base64 provided
     let imageUrl: string | null = null
@@ -135,13 +141,16 @@ export async function POST(req: Request) {
     }
 
     // Save AI response
-    await adminClient.from('chat_messages').insert({
+    const { error: saveAIErr } = await adminClient.from('chat_messages').insert({
       conversation_id: convId,
       user_id: user.id,
       role: 'assistant',
       content: aiResult.text,
       image_url: null,
     })
+    if (saveAIErr) {
+      console.error('Failed to save AI response:', saveAIErr)
+    }
 
     // Update conversation status
     await adminClient

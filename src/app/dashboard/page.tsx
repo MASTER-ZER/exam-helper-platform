@@ -154,18 +154,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8" dir="rtl">
+    <div className="container mx-auto px-4 py-4 md:py-8" dir="rtl">
       {/* Student Info */}
-      <Card className="mb-8">
-        <CardContent className="flex items-center gap-6 p-6">
-          <Avatar className="h-20 w-20">
+      <Card className="mb-4 md:mb-8 animate-slide-up">
+        <CardContent className="flex flex-col items-center gap-4 p-4 text-center md:flex-row md:text-right md:gap-6 md:p-6">
+          <Avatar className="h-16 w-16 md:h-20 md:w-20">
             <AvatarImage src={profile?.avatar_url} />
             <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{profile?.full_name}</h1>
-            <p className="text-muted-foreground">{profile?.governorate}</p>
-            <div className="mt-2 flex gap-2">
+            <h1 className="text-xl font-bold md:text-2xl">{profile?.full_name}</h1>
+            <p className="text-sm text-muted-foreground md:text-base">{profile?.governorate}</p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2 md:justify-start">
               <Badge variant={profile?.plan === 'paid' ? 'default' : 'secondary'}>
                 {profile?.plan === 'paid' ? 'مدفوع' : 'مجاني'}
               </Badge>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Quick Actions - Two Big Buttons */}
-      <Card className="mb-8 border-primary/20">
+      <Card className="mb-4 md:mb-8 border-primary/20 animate-scale-in">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Button

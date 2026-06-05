@@ -27,7 +27,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="gold" enableSystem={false}>
           <TooltipProvider>
             <Navbar />
-            <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+            <main className="min-h-[calc(100vh-4rem)] pb-16 md:pb-0 animate-in fade-in duration-300">{children}</main>
             <Toaster richColors position="top-left" />
           </TooltipProvider>
         </ThemeProvider>
