@@ -32,9 +32,10 @@ interface TelegramAIResponseData {
   full_name: string
   email: string
   phone: string
-  image_url: string
+  image_url?: string
   ai_response: string
   upload_id: string
+  user_text?: string
 }
 
 function getBotToken(): string {
@@ -190,17 +191,23 @@ function splitMessage(text: string): string[] {
 export async function sendAIResponseNotification(
   data: TelegramAIResponseData
 ): Promise<{ ok: boolean; error?: string }> {
-  const header = [
+  const lines = [
     '✅ <b>تم حل السؤال</b>',
     '',
     `👤 <b>الاسم:</b> ${escapeHtml(data.full_name)}`,
     `📧 <b>الإيميل:</b> ${escapeHtml(data.email)}`,
     `📞 <b>رقم الهاتف:</b> ${escapeHtml(data.phone)}`,
     `🆔 <b>ID:</b> ${escapeHtml(data.upload_id)}`,
-    '',
-    '━━━━━━━━━━━━━━━━',
-    '',
-  ].join('\n')
+  ]
+  if (data.user_text) {
+    lines.push(`💬 <b>السؤال:</b> ${escapeHtml(data.user_text)}`)
+  }
+  if (data.image_url) {
+    lines.push(`🖼️ <b>مع صورة</b>`)
+  }
+  lines.push('', '━━━━━━━━━━━━━━━━', '')
+
+  const header = lines.join('\n')
 
   const escapedResponse = escapeHtml(data.ai_response || '')
   const fullMessage = header + escapedResponse
