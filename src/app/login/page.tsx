@@ -25,14 +25,14 @@ export default function LoginPage() {
     let loginEmail = form.email
 
     if (/^01[0-9]{9}$/.test(form.email)) {
-      const { data: profiles } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('email')
         .eq('phone', form.email)
-        .limit(1)
+        .maybeSingle()
 
-      if (profiles && profiles.length > 0) {
-        loginEmail = profiles[0].email
+      if (profile?.email) {
+        loginEmail = profile.email
       }
     }
 
