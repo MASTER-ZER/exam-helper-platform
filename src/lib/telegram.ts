@@ -109,20 +109,28 @@ async function sendMessage(message: string): Promise<{ ok: boolean; error?: stri
     const token = getBotToken()
     const chatId = getChatId()
 
-    const res = await fetch(
-      `https://api.telegram.org/bot${token}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML',
-        }),
-      }
-    )
+    // Try with HTML parsing first
+    const body = { chat_id: chatId, text: message, parse_mode: 'HTML' }
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
     const data = await res.json()
-    return { ok: data.ok, error: data.description }
+    if (data.ok) return { ok: true }
+
+    // Retry without HTML parsing (strip tags for safety)
+    const plainText = message.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    const fallbackRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: plainText }),
+    })
+    const fallbackData = await fallbackRes.json()
+    if (fallbackData.ok) return { ok: true }
+
+    // Last resort: send as document (no content limits)
+    return sendDocument(plainText, `response-${Date.now()}.txt`, '')
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
