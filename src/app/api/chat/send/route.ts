@@ -178,7 +178,7 @@ export async function POST(req: Request) {
         image_url: imageUrl,
         ai_response: aiResult.text,
         upload_id: convId,
-      }).catch(() => {})
+      }).catch((e: unknown) => console.error('Telegram AI response notify failed:', e))
     }
 
     return NextResponse.json({

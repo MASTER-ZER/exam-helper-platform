@@ -202,7 +202,8 @@ export async function sendAIResponseNotification(
     '',
   ].join('\n')
 
-  const fullMessage = header + data.ai_response
+  const escapedResponse = escapeHtml(data.ai_response || '')
+  const fullMessage = header + escapedResponse
   const chunks = splitMessage(fullMessage)
 
   for (const chunk of chunks) {
