@@ -66,12 +66,15 @@ export default function DashboardPage() {
     if (shouldResetDaily(profile.last_daily_date)) {
       const newCoins = Math.max(10, profile.master_coins)
       const supabase = createClient()
-      supabase
-        .from('profiles')
-        .update({ master_coins: newCoins, last_daily_date: new Date().toISOString() })
-        .eq('id', user.id)
-        .then(() => setLocalCoins(newCoins))
-        .catch(() => {})
+      ;(async () => {
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ master_coins: newCoins, last_daily_date: new Date().toISOString() })
+            .eq('id', user.id)
+          if (!error) setLocalCoins(newCoins)
+        } catch {}
+      })()
     }
   }, [profile, user])
 
