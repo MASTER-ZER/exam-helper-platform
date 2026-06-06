@@ -34,23 +34,11 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check daily limit
-    const planLimits: Record<string, number> = { free: 10, paid: 50 }
-    const dailyLimit = planLimits[profile.plan] || 10
-
-    const today = new Date().toDateString()
-    const lastUpload = profile.last_upload_date
-      ? new Date(profile.last_upload_date).toDateString()
-      : null
-
-    let currentCount = profile.daily_upload_count
-    if (today !== lastUpload) {
-      currentCount = 0
-    }
-
-    if (currentCount >= dailyLimit) {
+    // Check coins
+    const coins = profile.master_coins ?? 0
+    if (coins <= 0) {
       return NextResponse.json(
-        { error: 'لقد وصلت للحد المجاني اليومي. قم بالترقية لمتابعة الحلول.' },
+        { error: 'رصيدك من ماستر كوين نفذ. تواصل مع الإدارة للشحن.' },
         { status: 429 }
       )
     }
@@ -141,13 +129,10 @@ export async function POST(req: Request) {
         .update({ status: 'completed' })
         .eq('id', conversation.id)
 
-      // Update daily upload count
+      // Decrement coins
       await adminClient
         .from('profiles')
-        .update({
-          daily_upload_count: today === lastUpload ? currentCount + 1 : 1,
-          last_upload_date: new Date().toISOString(),
-        })
+        .update({ master_coins: coins - 1 })
         .eq('id', user.id)
 
       // Send Telegram notification after successful AI response

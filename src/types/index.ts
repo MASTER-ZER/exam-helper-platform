@@ -9,8 +9,7 @@ export interface Profile {
   plan: 'free' | 'paid'
   role: 'student' | 'admin'
   is_banned: boolean
-  daily_upload_count: number
-  last_upload_date: string | null
+  master_coins: number
   created_at: string
   updated_at: string
 }

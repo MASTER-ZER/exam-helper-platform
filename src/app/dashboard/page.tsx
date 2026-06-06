@@ -18,7 +18,7 @@ import {
   Brain,
   ClipboardCheck,
   FileQuestion,
-  MessageCircle,
+  Coins,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [currentQuestionImage, setCurrentQuestionImage] = useState<string | null>(null)
   const [conversations, setConversations] = useState<(ExamConversation & { uploads: ExamUpload[] })[]>([])
   const [showUpload, setShowUpload] = useState(false)
-  const [remainingUploads, setRemainingUploads] = useState(8)
+  const [localCoins, setLocalCoins] = useState(0)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
 
@@ -54,19 +54,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (profile) {
-      const freeLimit = 10
-      const used = profile.daily_upload_count
-      const today = new Date().toDateString()
-      const lastUpload = profile.last_upload_date
-        ? new Date(profile.last_upload_date).toDateString()
-        : null
-
-      if (today !== lastUpload) {
-        setRemainingUploads(freeLimit)
-      } else {
-        setRemainingUploads(Math.max(0, freeLimit - (used || 0)))
-      }
-
+      setLocalCoins(profile.master_coins)
       loadConversations()
     }
   }, [profile])
@@ -101,8 +89,8 @@ export default function DashboardPage() {
       return
     }
 
-    if (remainingUploads <= 0) {
-      toast.error('لقد وصلت للحد المجاني اليومي. قم بالترقية لمتابعة الحلول.')
+    if (localCoins <= 0) {
+      toast.error('رصيدك من ماستر كوين نفذ. تواصل مع الإدارة للشحن.')
       return
     }
 
@@ -166,7 +154,7 @@ export default function DashboardPage() {
 
       setAiResult(data.ai_response)
       setUploadStatus('completed')
-      setRemainingUploads((prev) => prev - 1)
+      setLocalCoins((prev) => prev - 1)
       toast.success(activeTab === 'correct' ? 'تم تصحيح الورقة بنجاح!' : 'تم تحليل الصورة بنجاح!')
       loadConversations()
     } catch (err: unknown) {
@@ -204,25 +192,19 @@ export default function DashboardPage() {
               <Badge variant={profile?.plan === 'paid' ? 'default' : 'secondary'}>
                 {profile?.plan === 'paid' ? 'مدفوع' : 'مجاني'}
               </Badge>
-              <Badge variant="outline">
-                متبقي: {remainingUploads} رفعة
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Coins className="h-3 w-3" />
+                {localCoins} ماستر كوين
               </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions - Three Big Buttons */}
+      {/* Quick Actions - Two Buttons */}
       <Card className="mb-4 md:mb-8 border-primary/20 animate-scale-in">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Button
-              onClick={() => router.push('/chat')}
-              className="group relative h-28 flex-col gap-3 text-lg font-bold animate-pulse hover:animate-none"
-            >
-              <MessageCircle className="h-10 w-10" />
-              <span>تكلم مع الـ AI</span>
-            </Button>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Button
               variant={activeTab === 'solve' ? 'default' : 'outline'}
               onClick={() => switchTab('solve')}
@@ -371,11 +353,11 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {remainingUploads <= 0 && uploadStatus === 'idle' && (
+            {localCoins <= 0 && uploadStatus === 'idle' && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <AlertCircle className="h-12 w-12 text-amber-500" />
                 <p className="text-center text-lg">
-                  لقد وصلت للحد المجاني اليومي. قم بالترقية لمتابعة الحلول.
+                  رصيدك من ماستر كوين نفذ. تواصل مع الإدارة للشحن.
                 </p>
                 <Button onClick={() => router.push('/pricing')}>
                   عرض الباقات

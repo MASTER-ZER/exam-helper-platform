@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Loader2, Eye, Copy, Trash2, ExternalLink, CheckCircle2, AlertCircle, ArrowUp, Ban, UserCheck, RefreshCw, Calendar, Phone, Mail, MapPin, ImageIcon, MessageSquare } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Loader2, Eye, Copy, Trash2, ExternalLink, CheckCircle2, AlertCircle, ArrowUp, Ban, UserCheck, Coins, Calendar, Phone, Mail, MapPin, ImageIcon, MessageSquare } from 'lucide-react'
 import type { Profile, ExamConversation, ExamUpload } from '@/types'
 
 interface ConversationWithUploads extends ExamConversation {
@@ -25,6 +27,8 @@ export default function StudentDetailPage() {
   const [conversations, setConversations] = useState<ConversationWithUploads[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [coinAmount, setCoinAmount] = useState(10)
+  const [addingCoins, setAddingCoins] = useState(false)
 
   const [selectedConversation, setSelectedConversation] = useState<ConversationWithUploads | null>(null)
   const [selectedUpload, setSelectedUpload] = useState<ExamUpload | null>(null)
@@ -75,6 +79,26 @@ export default function StudentDetailPage() {
       toast.error('حدث خطأ أثناء تنفيذ العملية')
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  async function handleAddCoins() {
+    if (coinAmount <= 0) return
+    setAddingCoins(true)
+    try {
+      const res = await fetch(`/api/admin/users/${studentId}/coins`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: 'add', amount: coinAmount }),
+      })
+      if (!res.ok) throw new Error('فشلت العملية')
+      const data = await res.json()
+      setStudent((prev) => prev ? { ...prev, master_coins: data.master_coins } : null)
+      toast.success(`تم إضافة ${coinAmount} ماستر كوين بنجاح`)
+    } catch {
+      toast.error('حدث خطأ أثناء إضافة الكوين')
+    } finally {
+      setAddingCoins(false)
     }
   }
 
@@ -172,15 +196,21 @@ export default function StudentDetailPage() {
           حظر المستخدم
         </Button>
       )}
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => handleAction('reset', `/api/admin/users/${studentId}/plan`, { plan: student.plan })}
-        disabled={actionLoading !== null}
-      >
-        {actionLoading === 'reset' ? <Loader2 className="h-4 w-4 ml-1 animate-spin" /> : <RefreshCw className="h-4 w-4 ml-1" />}
-        إعادة تعيين عداد الرفع
-      </Button>
+      <div className="flex items-center gap-2">
+        <Label className="text-xs shrink-0">إضافة ماستر كوين:</Label>
+        <Input
+          type="number"
+          min={1}
+          value={coinAmount}
+          onChange={(e) => setCoinAmount(Number(e.target.value))}
+          className="w-20 h-8 text-sm"
+          dir="ltr"
+        />
+        <Button size="sm" onClick={handleAddCoins} disabled={addingCoins}>
+          {addingCoins ? <Loader2 className="h-4 w-4 ml-1 animate-spin" /> : <Coins className="h-4 w-4 ml-1" />}
+          إضافة
+        </Button>
+      </div>
     </div>
   )
 
@@ -253,14 +283,10 @@ export default function StudentDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <Coins className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">آخر رفع</p>
-                    <p className="font-medium">
-                      {student.last_upload_date
-                        ? new Date(student.last_upload_date).toLocaleDateString('ar-EG')
-                        : 'لا يوجد'}
-                    </p>
+                    <p className="text-xs text-muted-foreground">ماستر كوين</p>
+                    <p className="font-medium">{student.master_coins ?? 0}</p>
                   </div>
                 </div>
               </div>
@@ -286,8 +312,8 @@ export default function StudentDetailPage() {
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">عدد مرات الرفع اليوم</p>
-                  <p className="mt-1 font-medium">{student.daily_upload_count}</p>
+                  <p className="text-xs text-muted-foreground">الرصيد</p>
+                  <p className="mt-1 font-medium">{student.master_coins ?? 0} ماستر كوين</p>
                 </div>
               </div>
               {actionButtons}

@@ -13,7 +13,7 @@ import { Loader2, Eye, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Profile } from '@/types'
 
 interface StudentWithCount extends Profile {
-  daily_upload_count: number
+  master_coins: number
 }
 
 interface PaginationInfo {
@@ -160,7 +160,7 @@ export default function AdminStudentsPage() {
                     <TableHead className="text-right hidden md:table-cell">الهاتف</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">المحافظة</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">الخطة</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">رفع اليوم</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">ماستر كوين</TableHead>
                     <TableHead className="text-right hidden xl:table-cell">تاريخ التسجيل</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-right"></TableHead>
@@ -185,7 +185,7 @@ export default function AdminStudentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell" dir="ltr">
-                        {student.daily_upload_count}
+                        {student.master_coins}
                       </TableCell>
                       <TableCell className="text-muted-foreground hidden xl:table-cell">
                         {new Date(student.created_at).toLocaleDateString('ar-EG')}

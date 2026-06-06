@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   plan text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'paid')),
   role text NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'admin')),
   is_banned boolean NOT NULL DEFAULT false,
-  daily_upload_count int NOT NULL DEFAULT 0,
-  last_upload_date date,
+  master_coins int NOT NULL DEFAULT 10,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
