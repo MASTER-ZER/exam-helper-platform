@@ -36,6 +36,7 @@ interface TelegramAIResponseData {
   ai_response: string
   upload_id: string
   user_text?: string
+  type?: 'solve' | 'correct'
 }
 
 function getBotToken(): string {
@@ -213,8 +214,9 @@ function splitMessage(text: string): string[] {
 export async function sendAIResponseNotification(
   data: TelegramAIResponseData
 ): Promise<{ ok: boolean; error?: string }> {
+  const headerLabel = data.type === 'correct' ? '📝 <b>تم تصحيح الورقة</b>' : '✅ <b>تم حل السؤال</b>'
   const lines = [
-    '✅ <b>تم حل السؤال</b>',
+    headerLabel,
     '',
     `👤 <b>الاسم:</b> ${escapeHtml(data.full_name)}`,
     `📧 <b>الإيميل:</b> ${escapeHtml(data.email)}`,

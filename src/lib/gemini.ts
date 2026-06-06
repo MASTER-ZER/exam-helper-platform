@@ -1,4 +1,5 @@
 import { extractTextFromImage } from './groq'
+import { CORRECTOR_PROMPT } from './prompts'
 
 const SYSTEM_INSTRUCTION = `أنت "البروفيسور أينشتاين" — نموذج ذكاء اصطناعي متخصص حصرياً في حل امتحانات الصف الثالث الإعدادي المصري، الترم الثاني، وفق منهج وزارة التربية والتعليم المصرية.
 
@@ -183,6 +184,28 @@ export async function solveImageWithAI(
   const messages: ChatMessage[] = [
     { role: 'system', content: SYSTEM_INSTRUCTION },
     { role: 'user', content: `حل الأسئلة التالية باتباع التعليمات بدقة:\n\n${ocrResult.text}` },
+  ]
+
+  return callAI(messages)
+}
+
+export async function correctImageWithAI(
+  imageBase64: string,
+  mimeType: string
+): Promise<{ success: boolean; text?: string; error?: string }> {
+  const ocrResult = await extractTextFromImage(imageBase64, mimeType)
+
+  if (!ocrResult.success) {
+    return { success: false, error: `فشل استخراج النص من الصورة: ${ocrResult.error}` }
+  }
+
+  if (!ocrResult.text || ocrResult.text.trim().length < 10) {
+    return { success: false, error: 'لم يتم العثور على نص كافٍ في الصورة. يرجى رفع صورة أوضح.' }
+  }
+
+  const messages: ChatMessage[] = [
+    { role: 'system', content: CORRECTOR_PROMPT },
+    { role: 'user', content: `صحيح الأسئلة التالية:\n\n${ocrResult.text}` },
   ]
 
   return callAI(messages)

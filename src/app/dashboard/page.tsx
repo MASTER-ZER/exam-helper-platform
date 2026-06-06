@@ -12,20 +12,22 @@ import { Badge } from '@/components/ui/badge'
 import {
   Upload,
   Loader2,
-  ImagePlus,
   AlertCircle,
   CheckCircle2,
   XCircle,
   Brain,
+  ClipboardCheck,
   FileQuestion,
   MessageCircle,
 } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import type { ExamConversation, ExamUpload, UploadStatus } from '@/types'
 
 export default function DashboardPage() {
   const { user, profile, loading: userLoading } = useUser()
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'solve' | 'correct'>('solve')
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
   const [aiResult, setAiResult] = useState<string | null>(null)
   const [currentQuestionImage, setCurrentQuestionImage] = useState<string | null>(null)
@@ -34,6 +36,15 @@ export default function DashboardPage() {
   const [remainingUploads, setRemainingUploads] = useState(8)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+
+  function switchTab(tab: 'solve' | 'correct') {
+    setActiveTab(tab)
+    setShowUpload(true)
+    setUploadStatus('idle')
+    setAiResult(null)
+    setCurrentQuestionImage(null)
+    cancelPending()
+  }
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -134,7 +145,9 @@ export default function DashboardPage() {
       setUploadStatus('processing')
       cancelPending()
 
-      const res = await fetch('/api/exam/upload', {
+      const apiEndpoint = activeTab === 'correct' ? '/api/exam/correct' : '/api/exam/upload'
+
+      const res = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +167,7 @@ export default function DashboardPage() {
       setAiResult(data.ai_response)
       setUploadStatus('completed')
       setRemainingUploads((prev) => prev - 1)
-      toast.success('تم تحليل الصورة بنجاح!')
+      toast.success(activeTab === 'correct' ? 'تم تصحيح الورقة بنجاح!' : 'تم تحليل الصورة بنجاح!')
       loadConversations()
     } catch (err: unknown) {
       setUploadStatus('error')
@@ -199,10 +212,10 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Actions - Two Big Buttons */}
+      {/* Quick Actions - Three Big Buttons */}
       <Card className="mb-4 md:mb-8 border-primary/20 animate-scale-in">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Button
               onClick={() => router.push('/chat')}
               className="group relative h-28 flex-col gap-3 text-lg font-bold animate-pulse hover:animate-none"
@@ -211,12 +224,20 @@ export default function DashboardPage() {
               <span>تكلم مع الـ AI</span>
             </Button>
             <Button
-              variant="outline"
-              onClick={() => setShowUpload(!showUpload)}
+              variant={activeTab === 'solve' ? 'default' : 'outline'}
+              onClick={() => switchTab('solve')}
               className="h-28 flex-col gap-3 text-lg font-bold border-primary/50"
             >
-              <Upload className="h-10 w-10" />
-              <span>ارفع صورة الامتحان</span>
+              <Brain className="h-10 w-10" />
+              <span>حل الامتحان</span>
+            </Button>
+            <Button
+              variant={activeTab === 'correct' ? 'default' : 'outline'}
+              onClick={() => switchTab('correct')}
+              className="h-28 flex-col gap-3 text-lg font-bold border-primary/50"
+            >
+              <ClipboardCheck className="h-10 w-10" />
+              <span>مراجعة وتصحيح</span>
             </Button>
           </div>
         </CardContent>
@@ -225,11 +246,19 @@ export default function DashboardPage() {
       {/* Upload Section */}
       {showUpload && (
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              رفع صورة السؤال
-            </CardTitle>
+          <CardHeader className="pb-0">
+            <Tabs value={activeTab} onValueChange={(v) => switchTab(v as 'solve' | 'correct')} className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="solve" className="flex-1">
+                  <Brain className="h-4 w-4 ml-1" />
+                  حل الامتحان
+                </TabsTrigger>
+                <TabsTrigger value="correct" className="flex-1">
+                  <ClipboardCheck className="h-4 w-4 ml-1" />
+                  مراجعة وتصحيح
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
             {uploadStatus === 'idle' && !pendingPreview && (
@@ -259,10 +288,10 @@ export default function DashboardPage() {
                     className="max-h-80 rounded-lg object-contain"
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">تأكد من وضوح الصورة قبل الحل</p>
+                <p className="text-sm text-muted-foreground">{activeTab === 'correct' ? 'تأكد من وضوح الصورة قبل التصحيح' : 'تأكد من وضوح الصورة قبل الحل'}</p>
                 <div className="flex gap-3">
                   <Button onClick={handleSubmitImage} className="min-w-[120px]">
-                    حل الامتحان
+                    {activeTab === 'correct' ? 'تصحيح الورقة' : 'حل الامتحان'}
                   </Button>
                   <Button variant="outline" onClick={cancelPending}>
                     إلغاء
@@ -277,7 +306,9 @@ export default function DashboardPage() {
                 <p className="text-lg">
                   {uploadStatus === 'uploading'
                     ? 'جاري رفع الصورة...'
-                    : 'جاري تحليل الصورة باستخدام AI...'}
+                    : activeTab === 'correct'
+                      ? 'جاري تصحيح الورقة باستخدام AI...'
+                      : 'جاري تحليل الصورة باستخدام AI...'}
                 </p>
               </div>
             )}
@@ -295,8 +326,12 @@ export default function DashboardPage() {
                 )}
                 <div className="rounded-lg bg-muted p-4">
                   <div className="mb-2 flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-primary" />
-                    <h3 className="font-bold">نتيجة التحليل</h3>
+                    {activeTab === 'correct' ? (
+                      <ClipboardCheck className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Brain className="h-5 w-5 text-primary" />
+                    )}
+                    <h3 className="font-bold">{activeTab === 'correct' ? 'نتيجة التصحيح' : 'نتيجة التحليل'}</h3>
                   </div>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">
                     {aiResult}
@@ -308,7 +343,7 @@ export default function DashboardPage() {
                   setAiResult(null)
                   setCurrentQuestionImage(null)
                 }}>
-                  رفع سؤال آخر
+                  {activeTab === 'correct' ? 'تصحيح ورقة أخرى' : 'رفع سؤال آخر'}
                 </Button>
               </div>
             )}
