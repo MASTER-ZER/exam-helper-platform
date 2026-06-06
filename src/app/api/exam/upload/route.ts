@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { solveImageWithAI } from '@/lib/gemini'
 import { sendExamUploadNotification, sendAIResponseNotification } from '@/lib/telegram'
-import { getImageMimeType } from '@/lib/utils'
+import { getImageMimeType, shouldResetDaily } from '@/lib/utils'
 
 export const maxDuration = 60
 
@@ -32,6 +32,17 @@ export async function POST(req: Request) {
         { error: 'حسابك محظور. تواصل مع الدعم.' },
         { status: 403 }
       )
+    }
+
+    // Daily reset
+    if (shouldResetDaily(profile.last_daily_date)) {
+      const resetCoins = Math.max(10, profile.master_coins ?? 0)
+      await supabase
+        .from('profiles')
+        .update({ master_coins: resetCoins, last_daily_date: new Date().toISOString() })
+        .eq('id', user.id)
+      profile.master_coins = resetCoins
+      profile.last_daily_date = new Date().toISOString()
     }
 
     // Check coins

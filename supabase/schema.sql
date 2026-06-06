@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   role text NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'admin')),
   is_banned boolean NOT NULL DEFAULT false,
   master_coins int NOT NULL DEFAULT 10,
+  last_daily_date date DEFAULT CURRENT_DATE,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

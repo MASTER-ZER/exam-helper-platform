@@ -10,6 +10,7 @@ export interface Profile {
   role: 'student' | 'admin'
   is_banned: boolean
   master_coins: number
+  last_daily_date: string | null
   created_at: string
   updated_at: string
 }

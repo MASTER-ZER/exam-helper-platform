@@ -37,3 +37,10 @@ export function getImageMimeType(filename: string): string {
 export function generateId(): string {
   return crypto.randomUUID()
 }
+
+export function shouldResetDaily(lastDailyDate: string | null | undefined): boolean {
+  if (!lastDailyDate) return true
+  const today = new Date().toDateString()
+  const last = new Date(lastDailyDate).toDateString()
+  return today !== last
+}

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
+import { shouldResetDaily } from '@/lib/utils'
 import type { ExamConversation, ExamUpload, UploadStatus } from '@/types'
 
 export default function DashboardPage() {
@@ -53,11 +54,26 @@ export default function DashboardPage() {
   }, [user, userLoading, router])
 
   useEffect(() => {
+    if (!profile) return
     if (profile) {
       setLocalCoins(profile.master_coins)
       loadConversations()
     }
   }, [profile])
+
+  useEffect(() => {
+    if (!profile || !user) return
+    if (shouldResetDaily(profile.last_daily_date)) {
+      const newCoins = Math.max(10, profile.master_coins)
+      const supabase = createClient()
+      supabase
+        .from('profiles')
+        .update({ master_coins: newCoins, last_daily_date: new Date().toISOString() })
+        .eq('id', user.id)
+        .then(() => setLocalCoins(newCoins))
+        .catch(() => {})
+    }
+  }, [profile, user])
 
   async function loadConversations() {
     if (!user) return
