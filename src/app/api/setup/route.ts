@@ -100,6 +100,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   master_coins int NOT NULL DEFAULT 10, last_daily_date date DEFAULT CURRENT_DATE,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS master_coins int NOT NULL DEFAULT 10;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_daily_date date DEFAULT CURRENT_DATE;
+ALTER TABLE profiles DROP COLUMN IF EXISTS daily_upload_count;
+ALTER TABLE profiles DROP COLUMN IF EXISTS last_upload_date;
 ALTER TABLE profiles ADD CONSTRAINT IF NOT EXISTS profiles_phone_key UNIQUE (phone);
 CREATE TABLE IF NOT EXISTS exam_conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

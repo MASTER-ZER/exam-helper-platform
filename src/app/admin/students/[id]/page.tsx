@@ -91,12 +91,14 @@ export default function StudentDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operation: 'add', amount: coinAmount }),
       })
-      if (!res.ok) throw new Error('فشلت العملية')
-      const data = await res.json()
+      const text = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(text) } catch {}
+      if (!res.ok) throw new Error(data.error || 'فشلت العملية')
       setStudent((prev) => prev ? { ...prev, master_coins: data.master_coins } : null)
       toast.success(`تم إضافة ${coinAmount} ماستر كوين بنجاح`)
-    } catch {
-      toast.error('حدث خطأ أثناء إضافة الكوين')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'حدث خطأ أثناء إضافة الكوين')
     } finally {
       setAddingCoins(false)
     }

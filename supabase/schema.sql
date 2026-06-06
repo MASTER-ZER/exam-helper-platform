@@ -18,6 +18,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Migration: daily_upload_count + last_upload_date → master_coins + last_daily_date
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS master_coins int NOT NULL DEFAULT 10;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_daily_date date DEFAULT CURRENT_DATE;
+ALTER TABLE profiles DROP COLUMN IF EXISTS daily_upload_count;
+ALTER TABLE profiles DROP COLUMN IF EXISTS last_upload_date;
+
 -- Unique constraint on phone
 ALTER TABLE profiles ADD CONSTRAINT profiles_phone_key UNIQUE (phone);
 
