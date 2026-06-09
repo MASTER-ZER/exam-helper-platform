@@ -1,4 +1,4 @@
-const VISION_MODEL = 'gpt-5.5'
+const VISION_MODEL = 'gpt-4o'
 
 const EXTRACTION_PROMPT = `أنت متخصص في استخراج النصوص العربية من صور الامتحانات بدقة فائقة.
 مهمتك: استخرج كل النص الموجود في الصورة بدقة كاملة.
@@ -47,7 +47,7 @@ export async function extractTextFromImage(
             ],
           },
         ],
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.1,
       }),
     })
