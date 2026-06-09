@@ -12,6 +12,39 @@ const EXTRACTION_PROMPT = `أنت متخصص في استخراج النصوص ا
 - لا تكتب "النص المستخرج:" أو ما شابه
 - حافظ على تنسيق الأسطر والفقرات`
 
+async function visionRequest(imageBase64: string, mimeType: string): Promise<Response> {
+  const apiKey = process.env.AI_API_KEY
+  const apiUrl = process.env.AI_API_URL || 'https://api.bluesminds.com/v1'
+
+  return fetch(`${apiUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: VISION_MODEL,
+      stream: false,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: EXTRACTION_PROMPT },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${imageBase64}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 8192,
+      temperature: 0.1,
+    }),
+  })
+}
+
 export async function extractTextFromImage(
   imageBase64: string,
   mimeType: string
@@ -22,53 +55,47 @@ export async function extractTextFromImage(
       return { success: false, error: 'AI_API_KEY is not configured' }
     }
 
-    const apiUrl = process.env.AI_API_URL || 'https://api.bluesminds.com/v1'
+    let lastError = ''
+    const maxAttempts = 3
 
-    const res = await fetch(`${apiUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: VISION_MODEL,
-        stream: false,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: EXTRACTION_PROMPT },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${imageBase64}`,
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 8192,
-        temperature: 0.1,
-      }),
-    })
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (attempt > 1) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
 
-    if (!res.ok) {
-      const errorText = await res.text()
-      return { success: false, error: `Vision API error (${res.status}): ${errorText}` }
+      try {
+        const res = await visionRequest(imageBase64, mimeType)
+
+        if (!res.ok) {
+          const errorText = await res.text()
+          lastError = `Vision API error (${res.status}): ${errorText}`
+          if (res.status !== 500 || attempt === maxAttempts) {
+            return { success: false, error: lastError }
+          }
+          continue
+        }
+
+        const data = await res.json()
+
+        if (!data.choices || data.choices.length === 0) {
+          return { success: false, error: 'لم يتم الحصول على رد' }
+        }
+
+        const text = data.choices[0].message.content
+        if (!text || text.trim().length < 5) {
+          return { success: false, error: 'لم يتم العثور على نص كافٍ في الصورة' }
+        }
+
+        return { success: true, text }
+      } catch (fetchErr: unknown) {
+        lastError = fetchErr instanceof Error ? fetchErr.message : 'Unknown error during vision processing'
+        if (attempt === maxAttempts) {
+          return { success: false, error: lastError }
+        }
+      }
     }
 
-    const data = await res.json()
-
-    if (!data.choices || data.choices.length === 0) {
-      return { success: false, error: 'لم يتم الحصول على رد' }
-    }
-
-    const text = data.choices[0].message.content
-    if (!text || text.trim().length < 5) {
-      return { success: false, error: 'لم يتم العثور على نص كافٍ في الصورة' }
-    }
-
-    return { success: true, text }
+    return { success: false, error: lastError }
   } catch (err: unknown) {
     return {
       success: false,
