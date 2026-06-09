@@ -93,7 +93,7 @@ async function callAI(messages: ChatMessage[]): Promise<{
   try {
     const apiKey = process.env.AI_API_KEY
     const apiUrl = process.env.AI_API_URL || 'https://api.bluesminds.com/v1'
-    const model = process.env.AI_MODEL || 'gemini-3.5-flash'
+    const model = process.env.AI_MODEL || 'gpt-5.5'
 
     if (!apiKey) {
       return { success: false, error: 'AI_API_KEY is not configured' }
@@ -108,8 +108,8 @@ async function callAI(messages: ChatMessage[]): Promise<{
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 8192,
-        temperature: 0.7,
+        max_tokens: 4096,
+        temperature: 0.3,
       }),
     })
 
@@ -222,7 +222,7 @@ export async function testAIConnection(): Promise<{
     }
 
     const apiUrl = process.env.AI_API_URL || 'https://api.bluesminds.com/v1'
-    const model = process.env.AI_MODEL || 'gemini-3.5-flash'
+    const model = process.env.AI_MODEL || 'gpt-5.5'
 
     const res = await fetch(`${apiUrl}/chat/completions`, {
       method: 'POST',
